@@ -1,0 +1,100 @@
+networks:
+  devsecops-net:
+    driver: bridge
+
+volumes:
+  jenkins-data:
+  sonarqube-data:
+  sonarqube-logs:
+  sonarqube-extensions:
+  prometheus-data:
+  grafana-data:
+
+services:
+
+  # -------------------------------------------------------
+  # JENKINS - CI/CD Pipeline Engine
+  # URL: http://localhost:8080
+  # -------------------------------------------------------
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - devsecops-net
+    restart: unless-stopped
+
+  # -------------------------------------------------------
+  # SONARQUBE - Static Code Analysis
+  # URL: http://localhost:9000
+  # Default login: admin / admin
+  # -------------------------------------------------------
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-logs:/opt/sonarqube/logs
+      - sonarqube-extensions:/opt/sonarqube/extensions
+    networks:
+      - devsecops-net
+    restart: unless-stopped
+
+  # -------------------------------------------------------
+  # PROMETHEUS - Metrics Collection
+  # URL: http://localhost:9090
+  # -------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - devsecops-net
+    restart: unless-stopped
+
+  # -------------------------------------------------------
+  # GRAFANA - Monitoring Dashboards
+  # URL: http://localhost:3000
+  # Default login: admin / admin
+  # -------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - devsecops-net
+    restart: unless-stopped
+
+  # -------------------------------------------------------
+  # BURP SUITE - Security Analysis (Community Edition)
+  # -------------------------------------------------------
+  # NOTE: Burp Suite does not have an official Docker image.
+  # The team member assigned to Burp Suite will handle this
+  # by either:
+  #   - Building a custom Dockerfile (JAR + VNC server)
+  #   - Running Burp Suite locally outside Docker
+  # Once a working approach is ready, uncomment and update
+  # the service definition below.
+  #
+  # burpsuite:
+  #   build: ./burpsuite
+  #   container_name: burpsuite
+  #   ports:
+  #     - "8081:8081"
+  #   networks:
+  #     - devsecops-net
+  #   restart: unless-stopped
